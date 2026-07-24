@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Ranking Dinâmico de Setores</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background-color: #f4f6f9; 
+            margin: 0; 
+            padding: 40px; 
+            display: flex; 
+            justify-content: center; 
+        }
+        .container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            width: 100%; 
+            max-width: 600px; 
+        }
+        h2 { 
+            text-align: center; 
+            color: #333; 
+            margin-bottom: 20px; 
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 10px; 
+        }
+        th, td { 
+            padding: 12px 15px; 
+            text-align: left; 
+            border-bottom: 1px solid #ddd; 
+        }
+        th { 
+            background-color: #007bff; 
+            color: white; 
+        }
+        input[type="number"] { 
+            width: 100px; 
+            padding: 6px; 
+            font-size: 14px; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            text-align: right; 
+        }
+        .center { 
+            text-align: center; 
+            font-weight: bold; 
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Ranking Dinâmico de Setores</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Colocação</th>
+                <th>Setor</th>
+                <th>Porcentagem (%)</th>
+            </tr>
+        </thead>
+        <tbody id="tabela-corpo">
+        </tbody>
+    </table>
+</div>
+
+<script>
+    let dados = [
+        { setor: "Mercearia", porcentagem: 50.45 },
+        { setor: "Perecíveis", porcentagem: 45.55 },
+        { setor: "Bazar", porcentagem: 30.00 },
+        { setor: "Açougue", porcentagem: 21.50 },
+        { setor: "Padaria", porcentagem: 19.50 }
+    ];
+
+    function renderizar() {
+        // Ordena os dados do maior para o menor com base na porcentagem
+        dados.sort((a, b) => b.porcentagem - a.porcentagem);
+
+        const tbody = document.getElementById("tabela-corpo");
+        tbody.innerHTML = "";
+
+        dados.forEach((item, index) => {
+            let tr = document.createElement("tr");
+            
+            let tdColocacao = document.createElement("td");
+            tdColocacao.className = "center";
+            tdColocacao.innerText = `${index + 1}º`;
+            
+            let tdSetor = document.createElement("td");
+            tdSetor.innerText = item.setor;
+            
+            let tdPorcentagem = document.createElement("td");
+            let input = document.createElement("input");
+            input.type = "number";
+            input.step = "0.01";
+            input.value = item.porcentagem;
+            
+            // Atualiza o valor dinamicamente ao alterar o input
+            input.oninput = (e) => {
+                let val = parseFloat(e.target.value);
+                item.porcentagem = isNaN(val) ? 0 : val;
+                renderizar();
+            };
+            
+            tdPorcentagem.appendChild(input);
+            tr.appendChild(tdColocacao);
+            tr.appendChild(tdSetor);
+            tr.appendChild(tdPorcentagem);
+            tbody.appendChild(tr);
+        });
+    }
+
+    renderizar();
+</script>
+
+</body>
+</html>

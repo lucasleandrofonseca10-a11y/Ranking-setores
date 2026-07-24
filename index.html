@@ -25,6 +25,35 @@
             color: #333; 
             margin-bottom: 20px; 
         }
+        .botoes-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .btn-exportar {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-exportar:hover {
+            background-color: #218838;
+        }
+        .btn-limpar {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-limpar:hover {
+            background-color: #c82333;
+        }
         table { 
             width: 100%; 
             border-collapse: collapse; 
@@ -57,6 +86,13 @@
 
 <div class="container">
     <h2>Ranking Dinâmico de Setores</h2>
+    
+    <div class="botoes-container">
+        <button class="btn-exportar" onclick="exportarJSON()">📥 Exportar JSON</button>
+        <button class="btn-exportar" onclick="exportarCSV()">📊 Exportar CSV</button>
+        <button class="btn-limpar" onclick="limparDados()">🔄 Restaurar Padrão</button>
+    </div>
+    
     <table>
         <thead>
             <tr>
@@ -71,13 +107,15 @@
 </div>
 
 <script>
-    let dados = [
+    const DADOS_PADRAO = [
         { setor: "Mercearia", porcentagem: 50.45 },
         { setor: "Perecíveis", porcentagem: 45.55 },
         { setor: "Bazar", porcentagem: 30.00 },
         { setor: "Açougue", porcentagem: 21.50 },
         { setor: "Padaria", porcentagem: 19.50 }
     ];
+
+    let dados = [...DADOS_PADRAO];
 
     function renderizar() {
         // Ordena os dados do maior para o menor com base na porcentagem
@@ -115,6 +153,40 @@
             tr.appendChild(tdPorcentagem);
             tbody.appendChild(tr);
         });
+    }
+
+    function exportarJSON() {
+        const dadosOrdenados = [...dados].sort((a, b) => b.porcentagem - a.porcentagem);
+        const json = JSON.stringify(dadosOrdenados, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ranking-setores-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function exportarCSV() {
+        const dadosOrdenados = [...dados].sort((a, b) => b.porcentagem - a.porcentagem);
+        let csv = 'Colocação,Setor,Porcentagem (%)\n';
+        dadosOrdenados.forEach((item, index) => {
+            csv += `${index + 1},"${item.setor}",${item.porcentagem}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ranking-setores-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function limparDados() {
+        if (confirm('Tem certeza que deseja restaurar os dados padrão?')) {
+            dados = [...DADOS_PADRAO];
+            renderizar();
+        }
     }
 
     renderizar();

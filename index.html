@@ -30,6 +30,7 @@
             gap: 10px;
             justify-content: center;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
         button {
             padding: 10px 20px;
@@ -53,6 +54,16 @@
         }
         .btn-limpar:hover {
             background-color: #c82333;
+        }
+        .info-timeout {
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        .timeout-ativo {
+            color: #ff9800;
+            font-weight: bold;
         }
         table { 
             width: 100%; 
@@ -93,6 +104,10 @@
         <button class="btn-limpar" onclick="limparDados()">🔄 Restaurar Padrão</button>
     </div>
     
+    <div class="info-timeout">
+        <span id="status-timeout">⏱️ Aguardando edição...</span>
+    </div>
+    
     <table>
         <thead>
             <tr>
@@ -116,6 +131,8 @@
     ];
 
     let dados = [...DADOS_PADRAO];
+    let timeoutId = null;
+    const TEMPO_ESPERA = 5000; // 5 segundos
 
     function renderizar() {
         // Ordena os dados do maior para o menor com base na porcentagem
@@ -140,11 +157,27 @@
             input.step = "0.01";
             input.value = item.porcentagem;
             
-            // Atualiza o valor dinamicamente ao alterar o input
+            // Cancela o timeout anterior e aguarda 5 segundos antes de renderizar novamente
             input.oninput = (e) => {
                 let val = parseFloat(e.target.value);
                 item.porcentagem = isNaN(val) ? 0 : val;
-                renderizar();
+                
+                // Limpa o timeout anterior se existir
+                if (timeoutId) {
+                    clearTimeout(timeoutId);
+                }
+                
+                // Mostra que está aguardando
+                document.getElementById('status-timeout').innerHTML = '<span class="timeout-ativo">⏱️ Atualizando em 5 segundos...</span>';
+                
+                // Define novo timeout
+                timeoutId = setTimeout(() => {
+                    renderizar();
+                    document.getElementById('status-timeout').innerHTML = '✅ Ranking atualizado!';
+                    setTimeout(() => {
+                        document.getElementById('status-timeout').innerHTML = '⏱️ Aguardando edição...';
+                    }, 2000);
+                }, TEMPO_ESPERA);
             };
             
             tdPorcentagem.appendChild(input);
@@ -185,7 +218,11 @@
     function limparDados() {
         if (confirm('Tem certeza que deseja restaurar os dados padrão?')) {
             dados = [...DADOS_PADRAO];
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
             renderizar();
+            document.getElementById('status-timeout').innerHTML = '⏱️ Aguardando edição...';
         }
     }
 

@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>Ranking Dinâmico de Setores</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { 
             font-family: Arial, sans-serif; 
@@ -301,22 +300,47 @@
         
         const element = document.getElementById("export-area");
         
+        // Mostrar mensagem de processamento
+        document.getElementById('status-timeout').innerHTML = '<span class="timeout-ativo">⏱️ Gerando imagem...</span>';
+        
         html2canvas(element, {
-            scale: 2,
+            scale: 3,
+            useCORS: true,
+            allowTaint: false,
             backgroundColor: "#ffffff",
             logging: false,
-            allowTaint: true,
-            useCORS: true,
-            pixelRatio: 2
+            imageTimeout: 0,
+            onclone: function(clonedDocument) {
+                // Garantir que o documento clonado está pronto
+                clonedDocument.getElementById("export-area").style.display = "block";
+            }
         }).then(canvas => {
-            // Converte para JPEG com qualidade adequada
-            const link = document.createElement("a");
-            link.href = canvas.toDataURL("image/jpeg", 0.95);
-            link.download = `ranking-setores-${new Date().toISOString().split('T')[0]}.jpg`;
-            link.click();
+            try {
+                // Converter canvas para blob ao invés de dataURL
+                canvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = `ranking-setores-${new Date().toISOString().split('T')[0]}.jpg`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    
+                    document.getElementById('status-timeout').innerHTML = '✅ Imagem exportada com sucesso!';
+                    setTimeout(() => {
+                        document.getElementById('status-timeout').innerHTML = '⏱️ Aguardando edição...';
+                    }, 3000);
+                }, 'image/jpeg', 0.95);
+            } catch(error) {
+                console.error("Erro ao converter canvas:", error);
+                alert("Erro ao exportar imagem. Tente novamente.");
+                document.getElementById('status-timeout').innerHTML = '⏱️ Aguardando edição...';
+            }
         }).catch(error => {
             console.error("Erro ao exportar imagem:", error);
             alert("Erro ao exportar imagem. Tente novamente.");
+            document.getElementById('status-timeout').innerHTML = '⏱️ Aguardando edição...';
         });
     }
 

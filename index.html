@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Ranking Dinâmico de Setores</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { 
             font-family: Arial, sans-serif; 
@@ -305,12 +306,13 @@
             backgroundColor: "#ffffff",
             logging: false,
             allowTaint: true,
-            useCORS: true
+            useCORS: true,
+            pixelRatio: 2
         }).then(canvas => {
-            // Cria um link para download
+            // Converte para JPEG com qualidade adequada
             const link = document.createElement("a");
-            link.href = canvas.toDataURL("image/png");
-            link.download = `ranking-setores-${new Date().toISOString().split('T')[0]}.png`;
+            link.href = canvas.toDataURL("image/jpeg", 0.95);
+            link.download = `ranking-setores-${new Date().toISOString().split('T')[0]}.jpg`;
             link.click();
         }).catch(error => {
             console.error("Erro ao exportar imagem:", error);

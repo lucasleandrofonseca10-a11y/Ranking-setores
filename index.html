@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Ranking Dinâmico de Setores</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body { 
             font-family: Arial, sans-serif; 
@@ -98,6 +99,9 @@
             text-align: center; 
             font-weight: bold; 
         }
+        #export-area {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -108,6 +112,7 @@
     <div class="botoes-container">
         <button class="btn-exportar" onclick="exportarJSON()">📥 Exportar JSON</button>
         <button class="btn-exportar" onclick="exportarCSV()">📊 Exportar CSV</button>
+        <button class="btn-exportar" onclick="exportarComoImagem()">🖼️ Exportar Imagem</button>
         <button class="btn-limpar" onclick="limparDados()">🔄 Restaurar Padrão</button>
     </div>
 
@@ -129,6 +134,30 @@
         <tbody id="tabela-corpo">
         </tbody>
     </table>
+</div>
+
+<!-- Área invisível para exportação em imagem -->
+<div id="export-area">
+    <div style="background: white; padding: 50px; width: 800px; font-family: Arial, sans-serif;">
+        <h2 style="text-align: center; color: #333; margin-bottom: 30px; font-size: 32px;">Ranking Dinâmico de Setores</h2>
+        
+        <div style="background-color: #e7f3ff; padding: 25px; border-radius: 10px; margin-bottom: 30px; text-align: center; border: 3px solid #007bff;">
+            <p style="margin: 0; font-size: 20px; color: #007bff; font-weight: bold;">Meta Geral</p>
+            <p style="font-size: 40px; color: #0056b3; margin: 10px 0 0 0; font-weight: bold;" id="meta-valor-export">0.00%</p>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="background-color: #007bff; color: white; padding: 15px; text-align: center; border: 2px solid #0056b3; font-size: 16px;">Colocação</th>
+                    <th style="background-color: #007bff; color: white; padding: 15px; text-align: left; border: 2px solid #0056b3; font-size: 16px;">Setor</th>
+                    <th style="background-color: #007bff; color: white; padding: 15px; text-align: right; border: 2px solid #0056b3; font-size: 16px;">Porcentagem (%)</th>
+                </tr>
+            </thead>
+            <tbody id="tabela-export">
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <script>
@@ -229,14 +258,79 @@
         atualizarMetaGeralNaTela();
     }
 
+    function prepararExportacao() {
+        // Prepara a tabela de exportação com os dados ordenados
+        const dadosOrdenados = [...dados].sort((a, b) => {
+            const pa = (a.porcentagem === null || a.porcentagem === undefined || isNaN(a.porcentagem)) ? -Infinity : a.porcentagem;
+            const pb = (b.porcentagem === null || b.porcentagem === undefined || isNaN(b.porcentagem)) ? -Infinity : b.porcentagem;
+            return pb - pa;
+        });
+
+        const tabelaExport = document.getElementById("tabela-export");
+        tabelaExport.innerHTML = "";
+
+        const metaGeral = calcularMetaGeral();
+        document.getElementById("meta-valor-export").innerText = (metaGeral === null ? "—" : metaGeral.toFixed(2) + "%");
+
+        dadosOrdenados.forEach((item, index) => {
+            let tr = document.createElement("tr");
+            
+            let tdColocacao = document.createElement("td");
+            tdColocacao.style.cssText = "padding: 15px; border: 2px solid #ddd; text-align: center; font-weight: bold; font-size: 16px;";
+            tdColocacao.innerText = `${index + 1}º`;
+            
+            let tdSetor = document.createElement("td");
+            tdSetor.style.cssText = "padding: 15px; border: 2px solid #ddd; font-size: 16px;";
+            tdSetor.innerText = item.setor;
+            
+            let tdPorcentagem = document.createElement("td");
+            tdPorcentagem.style.cssText = "padding: 15px; border: 2px solid #ddd; text-align: right; font-size: 16px; font-weight: bold;";
+            const pct = (item.porcentagem === null || item.porcentagem === undefined || isNaN(item.porcentagem)) ? "—" : item.porcentagem.toFixed(2) + "%";
+            tdPorcentagem.innerText = pct;
+            
+            tr.appendChild(tdColocacao);
+            tr.appendChild(tdSetor);
+            tr.appendChild(tdPorcentagem);
+            tabelaExport.appendChild(tr);
+        });
+    }
+
+    function exportarComoImagem() {
+        prepararExportacao();
+        
+        const element = document.getElementById("export-area");
+        
+        html2canvas(element, {
+            scale: 2,
+            backgroundColor: "#ffffff",
+            logging: false,
+            allowTaint: true,
+            useCORS: true
+        }).then(canvas => {
+            // Cria um link para download
+            const link = document.createElement("a");
+            link.href = canvas.toDataURL("image/png");
+            link.download = `ranking-setores-${new Date().toISOString().split('T')[0]}.png`;
+            link.click();
+        }).catch(error => {
+            console.error("Erro ao exportar imagem:", error);
+            alert("Erro ao exportar imagem. Tente novamente.");
+        });
+    }
+
     function exportarJSON() {
         const dadosOrdenados = [...dados].sort((a, b) => {
             const pa = (a.porcentagem === null || a.porcentagem === undefined || isNaN(a.porcentagem)) ? -Infinity : a.porcentagem;
             const pb = (b.porcentagem === null || b.porcentagem === undefined || isNaN(b.porcentagem)) ? -Infinity : b.porcentagem;
             return pb - pa;
         });
-        // Ao exportar, mantemos nulls como null
-        const json = JSON.stringify(dadosOrdenados, null, 2);
+        const metaGeral = calcularMetaGeral();
+        const exportData = {
+            metaGeral: metaGeral,
+            setores: dadosOrdenados,
+            dataExportacao: new Date().toISOString()
+        };
+        const json = JSON.stringify(exportData, null, 2);
         const blob = new Blob([json], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -252,9 +346,11 @@
             const pb = (b.porcentagem === null || b.porcentagem === undefined || isNaN(b.porcentagem)) ? -Infinity : b.porcentagem;
             return pb - pa;
         });
-        let csv = 'Colocação,Setor,Porcentagem (%)\n';
+        const metaGeral = calcularMetaGeral();
+        let csv = `Meta Geral (%),${(metaGeral === null ? "—" : metaGeral.toFixed(2))}\n\n`;
+        csv += 'Colocação,Setor,Porcentagem (%)\n';
         dadosOrdenados.forEach((item, index) => {
-            const pct = (item.porcentagem === null || item.porcentagem === undefined || isNaN(item.porcentagem)) ? '' : item.porcentagem;
+            const pct = (item.porcentagem === null || item.porcentagem === undefined || isNaN(item.porcentagem)) ? '' : item.porcentagem.toFixed(2);
             csv += `${index + 1},"${item.setor}",${pct}\n`;
         });
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

@@ -29,7 +29,7 @@
             display: flex;
             gap: 10px;
             justify-content: center;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
             flex-wrap: wrap;
         }
         button {
@@ -64,6 +64,13 @@
         .timeout-ativo {
             color: #ff9800;
             font-weight: bold;
+        }
+        .meta-geral {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #333;
         }
         table { 
             width: 100%; 
@@ -103,7 +110,10 @@
         <button class="btn-exportar" onclick="exportarCSV()">📊 Exportar CSV</button>
         <button class="btn-limpar" onclick="limparDados()">🔄 Restaurar Padrão</button>
     </div>
-    
+
+    <!-- Meta geral adicionada -->
+    <div id="meta-geral" class="meta-geral">Meta geral (%): —</div>
+
     <div class="info-timeout">
         <span id="status-timeout">⏱️ Aguardando edição...</span>
     </div>
@@ -134,9 +144,34 @@
     let timeoutId = null;
     const TEMPO_ESPERA = 5000; // 5 segundos
 
+    function calcularMetaGeral() {
+        const valores = dados
+            .map(s => s.porcentagem)
+            .filter(v => v !== null && v !== undefined && !isNaN(v));
+
+        if (valores.length === 0) return null;
+        const soma = valores.reduce((a, b) => a + b, 0);
+        const media = soma / valores.length;
+        return Math.round(media * 100) / 100; // duas casas
+    }
+
+    function atualizarMetaGeralNaTela() {
+        const meta = calcularMetaGeral();
+        const el = document.getElementById('meta-geral');
+        if (meta === null) {
+            el.innerText = 'Meta geral (%): —';
+        } else {
+            el.innerText = `Meta geral (%): ${meta.toFixed(2)}%`;
+        }
+    }
+
     function renderizar() {
-        // Ordena os dados do maior para o menor com base na porcentagem
-        dados.sort((a, b) => b.porcentagem - a.porcentagem);
+        // Ordena os dados do maior para o menor com base na porcentagem (valores nulos ao final)
+        dados.sort((a, b) => {
+            const pa = (a.porcentagem === null || a.porcentagem === undefined || isNaN(a.porcentagem)) ? -Infinity : a.porcentagem;
+            const pb = (b.porcentagem === null || b.porcentagem === undefined || isNaN(b.porcentagem)) ? -Infinity : b.porcentagem;
+            return pb - pa;
+        });
 
         const tbody = document.getElementById("tabela-corpo");
         tbody.innerHTML = "";
@@ -155,12 +190,15 @@
             let input = document.createElement("input");
             input.type = "number";
             input.step = "0.01";
-            input.value = item.porcentagem;
+            // mostra vazio se for null
+            input.value = item.porcentagem ?? '';
             
             // Cancela o timeout anterior e aguarda 5 segundos antes de renderizar novamente
             input.oninput = (e) => {
-                let val = parseFloat(e.target.value);
-                item.porcentagem = isNaN(val) ? 0 : val;
+                const raw = e.target.value;
+                const val = parseFloat(raw);
+                // Se o campo estiver vazio ou inválido, guardamos null para que a média ignore
+                item.porcentagem = raw === '' || isNaN(val) ? null : val;
                 
                 // Limpa o timeout anterior se existir
                 if (timeoutId) {
@@ -186,10 +224,18 @@
             tr.appendChild(tdPorcentagem);
             tbody.appendChild(tr);
         });
+
+        // Atualiza meta geral na UI
+        atualizarMetaGeralNaTela();
     }
 
     function exportarJSON() {
-        const dadosOrdenados = [...dados].sort((a, b) => b.porcentagem - a.porcentagem);
+        const dadosOrdenados = [...dados].sort((a, b) => {
+            const pa = (a.porcentagem === null || a.porcentagem === undefined || isNaN(a.porcentagem)) ? -Infinity : a.porcentagem;
+            const pb = (b.porcentagem === null || b.porcentagem === undefined || isNaN(b.porcentagem)) ? -Infinity : b.porcentagem;
+            return pb - pa;
+        });
+        // Ao exportar, mantemos nulls como null
         const json = JSON.stringify(dadosOrdenados, null, 2);
         const blob = new Blob([json], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -201,10 +247,15 @@
     }
 
     function exportarCSV() {
-        const dadosOrdenados = [...dados].sort((a, b) => b.porcentagem - a.porcentagem);
+        const dadosOrdenados = [...dados].sort((a, b) => {
+            const pa = (a.porcentagem === null || a.porcentagem === undefined || isNaN(a.porcentagem)) ? -Infinity : a.porcentagem;
+            const pb = (b.porcentagem === null || b.porcentagem === undefined || isNaN(b.porcentagem)) ? -Infinity : b.porcentagem;
+            return pb - pa;
+        });
         let csv = 'Colocação,Setor,Porcentagem (%)\n';
         dadosOrdenados.forEach((item, index) => {
-            csv += `${index + 1},"${item.setor}",${item.porcentagem}\n`;
+            const pct = (item.porcentagem === null || item.porcentagem === undefined || isNaN(item.porcentagem)) ? '' : item.porcentagem;
+            csv += `${index + 1},"${item.setor}",${pct}\n`;
         });
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
@@ -226,6 +277,7 @@
         }
     }
 
+    // Render inicial
     renderizar();
 </script>
 
